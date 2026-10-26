@@ -1,0 +1,106 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineMatch - {{ mode|title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+    <nav class="navbar">
+        <h2>CineMatch 🎬</h2>
+        <a href="{{ url_for('index') }}">Home</a>
+    </nav>
+
+    <main class="auth-container">
+        <div class="auth-card">
+
+            {% if mode == 'register' %}
+                <h1>Create Account</h1>
+                <p>Join CineMatch and discover movies you'll love.</p>
+
+                <form action="{{ url_for('register') }}" method="POST">
+                    <label for="display_name">Full Name</label>
+                    <input
+                        type="text"
+                        id="display_name"
+                        name="display_name"
+                        placeholder="Enter your name"
+                        required
+                    >
+
+                    <label for="username">Username</label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="Choose a username"
+                        required
+                    >
+
+                    <label for="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="At least 6 characters"
+                        minlength="6"
+                        required
+                    >
+
+                    <button type="submit">Register</button>
+                </form>
+
+                <p>Already have an account?
+                    <a href="{{ url_for('login') }}">Login</a>
+                </p>
+
+            {% else %}
+                <h1>Welcome Back!</h1>
+                <p>Login to get your personalized movie recommendations.</p>
+
+                <form action="{{ url_for('login') }}" method="POST">
+                    <label for="username">Username</label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="Enter your username"
+                        required
+                    >
+
+                    <label for="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        required
+                    >
+
+                    <button type="submit">Login</button>
+                </form>
+
+                <p>Don't have an account?
+                    <a href="{{ url_for('register') }}">Register</a>
+                </p>
+            {% endif %}
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for message in messages %}
+                            <p>{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+        </div>
+    </main>
+
+</body>
+</html>
+

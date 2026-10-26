@@ -1,0 +1,59 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Rating History - CineMatch</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+<nav class="navbar">
+    <h2>CineMatch 🎬</h2>
+    <div class="nav-links">
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('view_watchlist') }}">❤️ My Watchlist</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+</nav>
+
+<main class="container">
+    <h1>⭐ My Rating History</h1>
+    <p>Movies you have rated.</p>
+
+    <div class="movie-grid">
+        {% for item in ratings %}
+        <div class="movie-card">
+            {% if item.poster_url %}
+                <img src="{{ item.poster_url }}"
+                     alt="{{ item.title }} poster">
+            {% else %}
+                <div class="no-poster">No Poster Available</div>
+            {% endif %}
+
+            <h3>{{ item.title }}</h3>
+            <p>Year: {{ item.release_year or "Unknown" }}</p>
+            <p>Genre: {{ item.genre or "Unknown" }}</p>
+            <p class="gold-rating">
+                Your Rating: ★ {{ item.rating }}/5
+            </p>
+            <p>
+                Rated on:
+                {{ item.rated_at.strftime('%d-%m-%Y') if item.rated_at else "Unknown" }}
+            </p>
+
+            <a class="btn"
+               href="{{ url_for('movie_details', movie_id=item.movie_id) }}">
+                View Movie
+            </a>
+        </div>
+        {% else %}
+            <p>You haven't rated any movies yet.</p>
+        {% endfor %}
+    </div>
+</main>
+
+</body>
+</html>

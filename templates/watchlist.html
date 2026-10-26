@@ -1,0 +1,53 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Watchlist - CineMatch</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>My Watchlist</h1>
+
+    <p>Movies you have saved to watch later.</p>
+
+    <a href="{{ url_for('index') }}">Back to Home</a>
+
+    {% if movies %}
+        <div class="movie-list">
+            {% for movie in movies %}
+                <div class="movie-card">
+
+                    {% if movie.poster_url %}
+                        <img src="{{ movie.poster_url }}"
+                             alt="{{ movie.title }}"
+                             width="180">
+                    {% endif %}
+
+                    <h3>{{ movie.title }}</h3>
+                    <p>Year: {{ movie.release_year }}</p>
+                    <p>Genre: {{ movie.genre }}</p>
+
+                    <a href="{{ url_for('movie_details',
+                                        movie_id=movie.movie_id) }}">
+                        View Details
+                    </a>
+
+                    <form method="POST"
+                          action="{{ url_for('remove_from_watchlist',
+                                             movie_id=movie.movie_id) }}">
+                        <button type="submit">
+                            Remove from Watchlist
+                        </button>
+                    </form>
+
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>Your watchlist is empty. Add some movies from the home page!</p>
+    {% endif %}
+</body>
+</html>

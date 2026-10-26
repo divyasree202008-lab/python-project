@@ -1,0 +1,86 @@
+
+<div class="movie-card">
+    <a class="poster-link"
+       href="{{ url_for('movie_details', movie_id=movie.movie_id) }}">
+
+        <img
+            class="movie-poster"
+            src="{{ movie.poster_url }}"
+            alt="{{ movie.title }} poster"
+            loading="lazy"
+        >
+    </a>
+
+    <div class="movie-info">
+        <h3>
+            <a href="{{ url_for('movie_details', movie_id=movie.movie_id) }}">
+                {{ movie.title }}
+            </a>
+        </h3>
+
+        <p>{{ movie.release_year }}</p>
+        <p>{{ movie.genre }}</p>
+
+        <p class="rating">
+            {% if movie.avg_rating is defined and movie.avg_rating is not none %}
+                ⭐ {{ "%.1f"|format(movie.avg_rating|float) }}/5
+            {% else %}
+                ⭐ Not rated yet
+            {% endif %}
+        </p>
+
+        <p>
+            {{ movie.rating_count|default(0) }} ratings
+        </p>
+
+        {% if session.get('user_id') %}
+
+            <!-- NEW: Add to Watchlist button -->
+            <form
+                action="{{ url_for('add_to_watchlist', movie_id=movie.movie_id) }}"
+                method="POST"
+                style="margin-top: 12px;"
+            >
+                <button class="btn btn-secondary"
+                        type="submit"
+                        style="width: 100%;">
+                    ❤️ Add to Watchlist
+                </button>
+            </form>
+
+            <!-- Existing rating form -->
+            <form class="rating-form"
+                  action="{{ url_for('rate_movie') }}"
+                  method="POST">
+
+                <input type="hidden"
+                       name="movie_id"
+                       value="{{ movie.movie_id }}">
+
+                <label for="rating-{{ movie.movie_id }}">
+                    Rate this movie
+                </label>
+
+                <select id="rating-{{ movie.movie_id }}"
+                        name="rating"
+                        required>
+                    <option value="">Choose rating</option>
+                    <option value="1">1 - Poor</option>
+                    <option value="2">2 - Fair</option>
+                    <option value="3">3 - Good</option>
+                    <option value="4">4 - Very good</option>
+                    <option value="5">5 - Excellent</option>
+                </select>
+
+                <button class="btn" type="submit">
+                    Submit Rating
+                </button>
+            </form>
+
+        {% else %}
+            <p class="login-hint">
+                Login to add movies to your watchlist and rate them.
+            </p>
+        {% endif %}
+    </div>
+</div>

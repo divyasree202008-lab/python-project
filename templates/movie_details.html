@@ -1,0 +1,240 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{{ movie.title }} - CineMatch</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <h2>CineMatch 🎬</h2>
+
+        <div class="nav-links">
+            <a href="{{ url_for('index') }}">Home</a>
+
+            {% if session.get('user_id') %}
+                <a href="{{ url_for('view_watchlist') }}">
+                    ❤️ My Watchlist
+                </a>
+
+                <span>
+                    Welcome, {{ session.get('display_name', 'User') }}
+                </span>
+
+                <a href="{{ url_for('logout') }}">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Register</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="movie-details-container">
+
+        <!-- Selected movie details -->
+        <section class="movie-details-card">
+
+            <div class="movie-details-poster">
+                {% if movie.poster_url %}
+                    <img src="{{ movie.poster_url }}"
+                         alt="{{ movie.title }} poster">
+                {% else %}
+                    <div class="no-poster">
+                        No Poster Available
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="movie-details-info">
+
+                <h1>{{ movie.title }}</h1>
+
+                <p>
+                    <strong>Release Year:</strong>
+                    {{ movie.release_year or "Not available" }}
+                </p>
+
+                <p>
+                    <strong>Genre:</strong>
+                    {{ movie.genre or "Not available" }}
+                </p>
+
+                <p>
+                    <strong>Average Rating:</strong>
+                    {% if movie.avg_rating is defined and movie.avg_rating|float > 0 %}
+                        <span class="gold-rating">
+                            ★ {{ "%.1f"|format(movie.avg_rating|float) }}/5
+                        </span>
+                    {% elif movie.average_rating is defined and movie.average_rating|float > 0 %}
+                        <span class="gold-rating">
+                            ★ {{ "%.1f"|format(movie.average_rating|float) }}/5
+                        </span>
+                    {% else %}
+                        Not rated yet
+                    {% endif %}
+                </p>
+
+                <p>
+                    <strong>Total Ratings:</strong>
+                    {% if movie.rating_count is defined %}
+                        {{ movie.rating_count }}
+                    {% else %}
+                        {{ movie.total_ratings|default(0) }}
+                    {% endif %}
+                </p>
+
+                <hr>
+
+                <!-- Interactive rating stars -->
+                {% if session.get('user_id') %}
+
+                    <h3>Rate This Movie ⭐</h3>
+
+                    <form action="{{ url_for('rate_movie') }}"
+                          method="POST"
+                          class="rating-form">
+
+                        <input type="hidden"
+                               name="movie_id"
+                               value="{{ movie.movie_id }}">
+
+                        <div class="star-rating">
+
+                            <input type="radio"
+                                   id="star5"
+                                   name="rating"
+                                   value="5"
+                                   required>
+                            <label for="star5" title="5 stars">★</label>
+
+                            <input type="radio"
+                                   id="star4"
+                                   name="rating"
+                                   value="4">
+                            <label for="star4" title="4 stars">★</label>
+
+                            <input type="radio"
+                                   id="star3"
+                                   name="rating"
+                                   value="3">
+                            <label for="star3" title="3 stars">★</label>
+
+                            <input type="radio"
+                                   id="star2"
+                                   name="rating"
+                                   value="2">
+                            <label for="star2" title="2 stars">★</label>
+
+                            <input type="radio"
+                                   id="star1"
+                                   name="rating"
+                                   value="1">
+                            <label for="star1" title="1 star">★</label>
+
+                        </div>
+
+                        <p class="rating-hint">
+                            Click a star to select your rating.
+                        </p>
+
+                        <button type="submit" class="btn">
+                            Submit Rating
+                        </button>
+
+                    </form>
+
+                {% else %}
+
+                    <p>
+                        <a href="{{ url_for('login') }}">Login</a>
+                        to rate this movie.
+                    </p>
+
+                {% endif %}
+
+                <br>
+
+                <a class="back-button"
+                   href="{{ url_for('index') }}">
+                    ← Back to Movies
+                </a>
+
+            </div>
+        </section>
+
+        <!-- Similar movies -->
+        <section class="similar-section">
+
+            <h2>🎬 Similar Movies You May Like</h2>
+
+            <div class="similar-grid">
+
+                {% for similar in similar_movies %}
+
+                    <article class="similar-card">
+
+                        <a href="{{ url_for('movie_details',
+                                             movie_id=similar.movie_id) }}">
+
+                            {% if similar.poster_url %}
+                                <img src="{{ similar.poster_url }}"
+                                     alt="{{ similar.title }} poster">
+                            {% else %}
+                                <div class="similar-no-poster">
+                                    No Poster Available
+                                </div>
+                            {% endif %}
+
+                        </a>
+
+                        <h3>
+                            <a href="{{ url_for('movie_details',
+                                                movie_id=similar.movie_id) }}">
+                                {{ similar.title }}
+                            </a>
+                        </h3>
+
+                        <p>{{ similar.release_year or "Year unavailable" }}</p>
+                        <p>{{ similar.genre or "Genre unavailable" }}</p>
+
+                        {% if similar.avg_rating|float > 0 %}
+                            <p class="gold-rating">
+                                ★ {{ "%.1f"|format(similar.avg_rating|float) }}/5
+                            </p>
+                        {% else %}
+                            <p>Not rated yet</p>
+                        {% endif %}
+
+                        <a class="details-link"
+                           href="{{ url_for('movie_details',
+                                            movie_id=similar.movie_id) }}">
+                            View Details →
+                        </a>
+
+                    </article>
+
+                {% else %}
+
+                    <p>
+                        No similar movies found for this genre yet.
+                    </p>
+
+                {% endfor %}
+
+            </div>
+
+        </section>
+
+    </main>
+
+</body>
+</html>
+
