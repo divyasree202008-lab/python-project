@@ -15,11 +15,13 @@
 
     <!-- Navigation Bar -->
     <nav class="navbar">
+
         <a href="{{ url_for('index') }}" class="logo">
             🎬 CineMatch
         </a>
 
         <div class="nav-links">
+
             {% if session.get('user_id') %}
 
                 <a class="btn btn-secondary"
@@ -39,17 +41,18 @@
 
             {% else %}
 
-                <a class="btn btn-secondary"
-                   href="{{ url_for('login') }}">
+                <a href="{{ url_for('login') }}"
+                   class="login-btn">
                     Login
                 </a>
 
-                <a class="btn btn-primary"
-                   href="{{ url_for('register') }}">
+                <a href="{{ url_for('register') }}"
+                   class="register-btn">
                     Register
                 </a>
 
             {% endif %}
+
         </div>
     </nav>
 
@@ -80,6 +83,7 @@
             <h2>🔍 Search Movies</h2>
 
             <form action="{{ url_for('index') }}" method="GET">
+
                 <input
                     type="text"
                     name="search"
@@ -90,6 +94,7 @@
                 <button type="submit" class="btn btn-primary">
                     Search
                 </button>
+
             </form>
         </section>
 
@@ -118,7 +123,9 @@
                             {{ genre }}
                         </option>
                     {% endfor %}
+
                 </select>
+
 
                 <select name="year">
                     <option value="">All Years</option>
@@ -131,7 +138,9 @@
                             {{ year }}
                         </option>
                     {% endfor %}
+
                 </select>
+
 
                 <select name="min_rating">
                     <option value="">Any Rating</option>
@@ -150,6 +159,7 @@
                         {% if min_rating|string == '4.5' %}selected{% endif %}>
                         4.5+ Stars
                     </option>
+
                 </select>
 
                 <button type="submit" class="btn btn-primary">
@@ -167,6 +177,7 @@
 
         <!-- Favorite Genres -->
         {% if session.get('user_id') %}
+
             <section class="genres-section">
                 <h2>❤️ Your Favorite Genres</h2>
 
@@ -188,18 +199,23 @@
                 <h2>✨ Movie Recommendations</h2>
 
                 {% if recommendations %}
+
                     <div class="movie-grid">
                         {% for movie in recommendations %}
                             {% include 'movie_card.html' %}
                         {% endfor %}
                     </div>
+
                 {% else %}
+
                     <p>
                         No recommendations available yet.
                         Choose your favorite genres or rate some movies!
                     </p>
+
                 {% endif %}
             </section>
+
         {% endif %}
 
 
@@ -208,13 +224,17 @@
             <h2>⭐ Top Rated Movies</h2>
 
             {% if top_movies %}
+
                 <div class="movie-grid">
                     {% for movie in top_movies %}
                         {% include 'movie_card.html' %}
                     {% endfor %}
                 </div>
+
             {% else %}
+
                 <p>No top-rated movies available yet.</p>
+
             {% endif %}
         </section>
 
@@ -224,13 +244,17 @@
             <h2>🎥 All Movies</h2>
 
             {% if movies %}
+
                 <div class="movie-grid">
                     {% for movie in movies %}
                         {% include 'movie_card.html' %}
                     {% endfor %}
                 </div>
+
             {% else %}
+
                 <p>No movies found. Try another search or filter.</p>
+
             {% endif %}
         </section>
 
@@ -246,4 +270,3 @@
 
 </body>
 </html>
-

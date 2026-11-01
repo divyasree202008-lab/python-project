@@ -1,8 +1,10 @@
+import re
 import os
 from dotenv import load_dotenv
 from flask import Flask, request, render_template, redirect, url_for, flash, session
 import mysql.connector
-
+from werkzeug.security import generate_password_hash, check_password_hash
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 load_dotenv()
 
 app = Flask(__name__)
@@ -272,44 +274,69 @@ def index():
 def register():
     if request.method == "POST":
         display_name = request.form.get("display_name", "").strip()
+        email = request.form.get("email", "").strip().lower()
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
 
-        if not display_name or not username or not password:
+        if not display_name or not email or not username or not password:
             flash("Please fill in all fields.", "error")
             return redirect(url_for("register"))
 
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        cursor.execute(
-            "SELECT user_id FROM users WHERE username = %s",
-            (username,)
-        )
-        existing_user = cursor.fetchone()
-
-        if existing_user:
-            cursor.close()
-            conn.close()
-            flash("Username already exists. Please log in.", "error")
+        if not re.fullmatch(r"(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]+", username):
+            flash("Username must contain letters and numbers only.", "error")
             return redirect(url_for("register"))
 
-        password_hash = generate_password_hash(password)
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-        cursor.execute("""
-            INSERT INTO users (display_name, username, password_hash)
-            VALUES (%s, %s, %s)
-        """, (display_name, username, password_hash))
+        try:
+            # Check whether the username already exists
+            cursor.execute(
+                "SELECT user_id FROM users WHERE username = %s",
+                (username,)
+            )
 
-        conn.commit()
-        cursor.close()
-        conn.close()
+            if cursor.fetchone():
+                flash("Username already exists. Please choose another.", "error")
+                return redirect(url_for("register"))
 
-        flash("Registration successful! Please log in.", "success")
-        return redirect(url_for("login"))
+            # Check whether the email already exists
+            cursor.execute(
+                "SELECT user_id FROM users WHERE email = %s",
+                (email,)
+            )
 
-    return render_template("auth.html", mode="register")
+            if cursor.fetchone():
+                flash("Email already registered. Please use another email.", "error")
+                return redirect(url_for("register"))
 
+            # Hash the password before saving it
+            password_hash = generate_password_hash(password)
+
+            cursor.execute(
+                """
+                INSERT INTO users
+                    (display_name, email, username, password_hash)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (display_name, email, username, password_hash)
+            )
+
+            conn.commit()
+
+            flash("Registration successful! Please log in.", "success")
+            return redirect(url_for("login"))
+
+        except Exception:
+            conn.rollback()
+            flash("Registration failed. Please check your details and try again.", "error")
+            app.logger.exception("Registration failed")
+
+        finally:
+            cursor.close()
+            conn.close()
+
+    return render_template("auth.html")
 
 # ---------------- LOGIN ----------------
 
@@ -651,10 +678,129 @@ def rating_history():
 
     return render_template("rating_history.html", ratings=ratings)
 
+def get_reset_serializer():
+    return URLSafeTimedSerializer(app.secret_key)
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    print("FORGOT PASSWORD FUNCTION CALLED")
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+
+        if not email:
+            flash("Please enter your registered email address.", "error")
+            return redirect(url_for("forgot_password"))
+
+        conn = None
+        cursor = None
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT user_id FROM users WHERE email = %s",
+                (email,)
+            )
+            user = cursor.fetchone()
+            print("FORM SUBMITTED SUCCESSFULLY")
+            print("USER FOUND:", user is not None)
+
+            if user:
+                token = get_reset_serializer().dumps(
+                    email,
+                    salt="password-reset-salt"
+                )
+                reset_url = url_for(
+                    "reset_password",
+                    token=token,
+                    _external=True
+                )
+                print("\\nPASSWORD RESET LINK (valid for 15 minutes):")
+                print(reset_url)
+                print()
+
+            flash(
+                "If the email is registered, check the Flask terminal "
+                "for the password reset link.",
+                "info"
+            )
+        except Exception:
+            app.logger.exception("Forgot password request failed")
+            flash("Something went wrong. Please try again.", "error")
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
+        return redirect(url_for("forgot_password"))
+
+    return render_template("forgot_password.html")
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    try:
+        email = get_reset_serializer().loads(
+            token,
+            salt="password-reset-salt",
+            max_age=900
+        )
+    except SignatureExpired:
+        flash("Your reset link has expired. Please request a new one.", "error")
+        return redirect(url_for("forgot_password"))
+    except BadSignature:
+        flash("Invalid password reset link.", "error")
+        return redirect(url_for("forgot_password"))
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if len(password) < 8:
+            flash("Password must be at least 8 characters.", "error")
+            return render_template("reset_password.html")
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "error")
+            return render_template("reset_password.html")
+
+        conn = None
+        cursor = None
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            password_hash = generate_password_hash(password)
+            cursor.execute(
+                "UPDATE users SET password_hash = %s WHERE email = %s",
+                (password_hash, email)
+            )
+            conn.commit()
+
+            if cursor.rowcount == 0:
+                flash("Account not found. Please request a new reset link.", "error")
+                return redirect(url_for("forgot_password"))
+
+            flash("Password changed successfully! Please log in.", "success")
+            return redirect(url_for("login"))
+        except Exception:
+            if conn:
+                conn.rollback()
+            app.logger.exception("Password update failed")
+            flash("Unable to update password. Please try again.", "error")
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
+    return render_template("reset_password.html")
+
+
 # ---------------- RUN APPLICATION ----------------
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
 
 
 

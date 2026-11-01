@@ -4,103 +4,315 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CineMatch - {{ mode|title }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+    <title>CineMatch - Login & Register</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='styles.css') }}">
+
+    <style>
+        body {
+            background-color: #0b0d14;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        .auth-container {
+            width: calc(100% - 30px);
+            max-width: 420px;
+            margin: 40px auto;
+            padding: 32px;
+            box-sizing: border-box;
+            background-color: #202437;
+            border: 1px solid #30354a;
+            border-radius: 15px;
+        }
+
+        .auth-container h2 {
+            color: #ffbd2e;
+            text-align: center;
+            margin: 15px 0 30px;
+            line-height: 1.4;
+        }
+
+        .auth-container label {
+            display: block;
+            margin: 18px 0 8px;
+            font-size: 15px;
+        }
+
+        .auth-container input {
+            display: block;
+            width: 100%;
+            height: 46px;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 1px solid #d5d7df;
+            border-radius: 7px;
+            background-color: white;
+            color: #171923;
+            font-size: 15px;
+        }
+
+        .auth-container input::placeholder {
+            color: #9aa1b3;
+        }
+
+        .auth-container input::-ms-reveal,
+        .auth-container input::-ms-clear {
+            display: none;
+        }
+
+        .password-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .auth-container .password-container input {
+            flex: 1 1 auto;
+            width: 0;
+            min-width: 0;
+            height: 46px;
+        }
+
+        .toggle-password {
+            flex: 0 0 70px;
+            width: 70px;
+            height: 46px;
+            padding: 0 8px;
+            border: none;
+            border-radius: 7px;
+            background-color: #ffbd2e;
+            color: #171923;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .toggle-password:hover,
+        .auth-submit:hover {
+            background-color: #f0a900;
+        }
+
+        .auth-submit {
+            display: block;
+            width: 100%;
+            min-height: 46px;
+            margin-top: 25px;
+            padding: 12px;
+            border: none;
+            border-radius: 7px;
+            background-color: #ffbd2e;
+            color: #171923;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .auth-switch {
+            margin-top: 22px;
+            text-align: center;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        .auth-switch a {
+            color: #ffbd2e;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .auth-switch a:hover {
+            text-decoration: underline;
+        }
+
+        .flash-message {
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 7px;
+            background-color: #34394d;
+            color: white;
+            overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 480px) {
+            .auth-container {
+                margin: 25px auto;
+                padding: 24px;
+            }
+        }
+    </style>
 </head>
+
 <body>
 
-    <nav class="navbar">
-        <h2>CineMatch 🎬</h2>
-        <a href="{{ url_for('index') }}">Home</a>
-    </nav>
+    <div class="auth-container">
 
-    <main class="auth-container">
-        <div class="auth-card">
+        {% if request.endpoint == 'register' %}
 
-            {% if mode == 'register' %}
-                <h1>Create Account</h1>
-                <p>Join CineMatch and discover movies you'll love.</p>
+            <h2>Create Your CineMatch Account</h2>
 
-                <form action="{{ url_for('register') }}" method="POST">
-                    <label for="display_name">Full Name</label>
-                    <input
-                        type="text"
-                        id="display_name"
-                        name="display_name"
-                        placeholder="Enter your name"
-                        required
-                    >
-
-                    <label for="username">Username</label>
-                    <input
-                        type="text"
-                        id="username"
-                        name="username"
-                        placeholder="Choose a username"
-                        required
-                    >
-
-                    <label for="password">Password</label>
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder="At least 6 characters"
-                        minlength="6"
-                        required
-                    >
-
-                    <button type="submit">Register</button>
-                </form>
-
-                <p>Already have an account?
-                    <a href="{{ url_for('login') }}">Login</a>
-                </p>
-
-            {% else %}
-                <h1>Welcome Back!</h1>
-                <p>Login to get your personalized movie recommendations.</p>
-
-                <form action="{{ url_for('login') }}" method="POST">
-                    <label for="username">Username</label>
-                    <input
-                        type="text"
-                        id="username"
-                        name="username"
-                        placeholder="Enter your username"
-                        required
-                    >
-
-                    <label for="password">Password</label>
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder="Enter your password"
-                        required
-                    >
-
-                    <button type="submit">Login</button>
-                </form>
-
-                <p>Don't have an account?
-                    <a href="{{ url_for('register') }}">Register</a>
-                </p>
-            {% endif %}
-
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    <div class="flash-messages">
-                        {% for message in messages %}
-                            <p>{{ message }}</p>
-                        {% endfor %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="flash-message">
+                        {{ message }}
                     </div>
-                {% endif %}
+                {% endfor %}
             {% endwith %}
 
-        </div>
-    </main>
+            <form action="{{ url_for('register') }}" method="POST">
+
+                <label for="display_name">Full Name</label>
+                <input
+                    type="text"
+                    id="display_name"
+                    name="display_name"
+                    placeholder="Enter your full name"
+                    autocomplete="name"
+                    required
+                >
+
+                <label for="email">Email Address</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Enter your email address"
+                    autocomplete="email"
+                    required
+                >
+
+                <label for="username">Username</label>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    placeholder="Letters and numbers"
+                    pattern="(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]+"
+                    title="Use letters and numbers only, with at least one letter and one number."
+                    autocomplete="username"
+                    required
+                >
+
+                <label for="register_password">Password</label>
+
+                <div class="password-container">
+                    <input
+                        type="password"
+                        id="register_password"
+                        name="password"
+                        placeholder="Enter your password"
+                        autocomplete="new-password"
+                        required
+                    >
+
+                    <button
+                        type="button"
+                        class="toggle-password"
+                        onclick="togglePassword('register_password', this)"
+                        aria-controls="register_password"
+                        aria-pressed="false"
+                    >Show</button>
+                </div>
+
+                <button type="submit" class="auth-submit">
+                    Register
+                </button>
+
+            </form>
+
+            <div class="auth-switch">
+                Already have an account?
+                <a href="{{ url_for('login') }}">Login</a>
+            </div>
+
+        {% else %}
+
+            <h2>Welcome Back to CineMatch</h2>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="flash-message">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endwith %}
+
+            <form action="{{ url_for('login') }}" method="POST">
+
+                <label for="login_username">Username</label>
+                <input
+                    type="text"
+                    id="login_username"
+                    name="username"
+                    placeholder="Enter your username"
+                    autocomplete="username"
+                    required
+                >
+
+                <label for="login_password">Password</label>
+
+                <div class="password-container">
+                    <input
+                        type="password"
+                        id="login_password"
+                        name="password"
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                        required
+                    >
+
+                    <button
+                        type="button"
+                        class="toggle-password"
+                        onclick="togglePassword('login_password', this)"
+                        aria-controls="login_password"
+                        aria-pressed="false"
+                    >Show</button>
+                </div>
+
+                <div style="text-align: right; margin-top: 12px;">
+                    <a href="{{ url_for('forgot_password') }}"
+                       style="color: #ffbd2e; text-decoration: none;">
+                        Forgot Password?
+                    </a>
+                </div>
+
+                <button type="submit" class="auth-submit">
+                    Login
+                </button>
+
+            </form>
+
+            <div class="auth-switch">
+                Don't have an account?
+                <a href="{{ url_for('register') }}">Register</a>
+            </div>
+
+        {% endif %}
+
+    </div>
+
+    <script>
+        function togglePassword(inputId, button) {
+            const password = document.getElementById(inputId);
+
+            if (password.type === "password") {
+                password.type = "text";
+                button.textContent = "Hide";
+                button.setAttribute("aria-pressed", "true");
+            } else {
+                password.type = "password";
+                button.textContent = "Show";
+                button.setAttribute("aria-pressed", "false");
+            }
+        }
+    </script>
 
 </body>
 </html>
+
+
 
