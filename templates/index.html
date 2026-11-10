@@ -4,112 +4,353 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>CineMatch - Movie Recommendation System</title>
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #101522;
+            color: white;
+        }
+
+        header {
+            background: #080d18;
+            padding: 18px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        header h1 {
+            color: #f5b82e;
+            margin: 0;
+        }
+
+        nav {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+        }
+
+        nav a:hover {
+            color: #f5b82e;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        section {
+            margin: 30px 0;
+        }
+
+        h2 {
+            color: #f5b82e;
+            margin-bottom: 18px;
+        }
+
+        .welcome {
+            background: #202b40;
+            padding: 25px;
+            border-radius: 12px;
+            margin-top: 25px;
+        }
+
+        .message {
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 7px;
+            background: #263b32;
+            color: #b9f6ca;
+        }
+
+        .error {
+            background: #48252b;
+            color: #ffcdd2;
+        }
+
+        .info {
+            background: #23364d;
+            color: #c8e4ff;
+        }
+
+        .filter-box,
+        .form-box,
+        .genre-box {
+            background: #202b40;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        input,
+        select {
+            padding: 11px;
+            border: 1px solid #526078;
+            border-radius: 6px;
+            background: #101522;
+            color: white;
+            margin: 5px;
+            max-width: 100%;
+        }
+
+        button,
+        .btn {
+            display: inline-block;
+            padding: 11px 17px;
+            background: #f5b82e;
+            color: #151515;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        button:hover,
+        .btn:hover {
+            background: #ffd36a;
+        }
+
+        .secondary {
+            background: #35445e;
+            color: white;
+        }
+
+        .secondary:hover {
+            background: #465b7c;
+        }
+
+        /* MOVIE GRID */
+
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 260px));
+            justify-content: start;
+            align-items: start;
+            gap: 22px;
+        }
+
+        /* MOVIE CARD */
+
+        .movie-card {
+            width: 100%;
+            max-width: 260px;
+            background: #202b40;
+            border-radius: 12px;
+            overflow: hidden;
+            padding-bottom: 15px;
+            border: 1px solid #35445e;
+            transition: transform 0.2s;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .movie-card img {
+            width: 100%;
+            height: 300px;
+            object-fit: contain;
+            display: block;
+            background: #101522;
+        }
+
+        .no-poster {
+            height: 300px;
+            display: grid;
+            place-items: center;
+            background: #35445e;
+            color: white;
+        }
+
+        .movie-info {
+            padding: 15px;
+        }
+
+        .movie-info h3 {
+            margin: 5px 0;
+            color: #f5b82e;
+        }
+
+        .movie-info p {
+            color: #c2c9d5;
+            font-size: 14px;
+        }
+
+        .rating {
+            color: #f5b82e;
+            font-weight: bold;
+        }
+
+        .reason {
+            color: #9ee6b0;
+            font-size: 13px;
+        }
+
+        .genre-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .genre-list label {
+            background: #101522;
+            padding: 10px 13px;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+
+        .empty {
+            color: #c2c9d5;
+            padding: 15px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            margin-top: 40px;
+            background: #080d18;
+            color: #aeb8c9;
+        }
+
+        /* TABLET */
+
+        @media (max-width: 800px) {
+            .movie-grid {
+                grid-template-columns: repeat(2, minmax(0, 260px));
+            }
+        }
+
+        /* MOBILE */
+
+        @media (max-width: 500px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            nav {
+                gap: 12px;
+            }
+
+            .container {
+                width: 94%;
+            }
+
+            .movie-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 12px;
+            }
+
+            .movie-card {
+                max-width: 100%;
+            }
+
+            .movie-card img,
+            .no-poster {
+                height: 210px;
+            }
+
+            .movie-info {
+                padding: 10px;
+            }
+
+            .movie-info h3 {
+                font-size: 15px;
+            }
+
+            .movie-info .btn,
+            .movie-info button {
+                font-size: 12px;
+                padding: 9px;
+            }
+        }
+
+        @media (max-width: 350px) {
+            .movie-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
-    <!-- Navigation Bar -->
-    <nav class="navbar">
+<header>
+    <h1>🎬 CineMatch</h1>
 
-        <a href="{{ url_for('index') }}" class="logo">
-            🎬 CineMatch
-        </a>
-
-        <div class="nav-links">
-
-            {% if session.get('user_id') %}
-
-                <a class="btn btn-secondary"
-                   href="{{ url_for('view_watchlist') }}">
-                    My Watchlist
-                </a>
-
-                <a class="btn btn-secondary"
-                   href="{{ url_for('rating_history') }}">
-                    ⭐ Rating History
-                </a>
-
-                <a class="btn btn-secondary"
-                   href="{{ url_for('logout') }}">
-                    Logout
-                </a>
-
-            {% else %}
-
-                <a href="{{ url_for('login') }}"
-                   class="login-btn">
-                    Login
-                </a>
-
-                <a href="{{ url_for('register') }}"
-                   class="register-btn">
-                    Register
-                </a>
-
-            {% endif %}
-
-        </div>
+    <nav>
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="#recommendations">Recommendations</a>
+        <a href="#movies">Movies</a>
+        <a href="#favorites">Favorite Genres</a>
+        <a href="{{ url_for('view_watchlist') }}">My Watchlist</a>
+        <a href="{{ url_for('rating_history') }}">Rating History</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
     </nav>
+</header>
+
+<div class="container">
+
+    <!-- FLASH MESSAGES -->
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="message {{ category }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
 
-    <main class="container">
+    <!-- WELCOME SECTION -->
 
-        <!-- Welcome Section -->
-        <section class="hero">
-            <h1>Discover Your Next Favorite Movie 🍿</h1>
-            <p>Your personal movie recommendation system.</p>
-        </section>
+    <section class="welcome">
+        <h2>
+            Welcome, {{ session.get('display_name', 'Movie Lover') }}! 👋
+        </h2>
 
-
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="flash-message {{ category }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+        <p>
+            Discover movies, rate your favorites, and find recommendations
+            based on your interests.
+        </p>
+    </section>
 
 
-        <!-- Movie Search -->
-        <section class="search-section">
-            <h2>🔍 Search Movies</h2>
+    <!-- SEARCH AND FILTER SECTION -->
 
-            <form action="{{ url_for('index') }}" method="GET">
+    <section id="movies">
 
-                <input
-                    type="text"
-                    name="search"
-                    placeholder="Search by movie title or genre..."
-                    value="{{ search_query or '' }}"
-                >
+        <h2>🔍 Find Your Movies</h2>
 
-                <button type="submit" class="btn btn-primary">
-                    Search
-                </button>
+        <div class="filter-box">
 
-            </form>
-        </section>
-
-
-        <!-- Movie Filters -->
-        <section class="filter-section">
-            <h2>🎯 Filter Movies</h2>
-
-            <form action="{{ url_for('index') }}" method="GET">
+            <form method="GET" action="{{ url_for('index') }}">
 
                 <input
                     type="text"
                     name="search"
-                    placeholder="Movie title"
-                    value="{{ search_query or '' }}"
+                    placeholder="Search movie title..."
+                    value="{{ search_query }}"
                 >
 
                 <select name="genre">
@@ -123,14 +364,12 @@
                             {{ genre }}
                         </option>
                     {% endfor %}
-
                 </select>
-
 
                 <select name="year">
                     <option value="">All Years</option>
 
-                    {% for year in range(2026, 1999, -1) %}
+                    {% for year in range(2000, 2027) %}
                         <option
                             value="{{ year }}"
                             {% if selected_year|string == year|string %}selected{% endif %}
@@ -138,135 +377,379 @@
                             {{ year }}
                         </option>
                     {% endfor %}
-
                 </select>
-
 
                 <select name="min_rating">
                     <option value="">Any Rating</option>
 
                     <option value="3"
-                        {% if min_rating|string == '3' %}selected{% endif %}>
+                        {% if min_rating == '3' %}selected{% endif %}>
                         3+ Stars
                     </option>
 
                     <option value="4"
-                        {% if min_rating|string == '4' %}selected{% endif %}>
+                        {% if min_rating == '4' %}selected{% endif %}>
                         4+ Stars
                     </option>
 
                     <option value="4.5"
-                        {% if min_rating|string == '4.5' %}selected{% endif %}>
+                        {% if min_rating == '4.5' %}selected{% endif %}>
                         4.5+ Stars
                     </option>
-
                 </select>
 
-                <button type="submit" class="btn btn-primary">
-                    Apply Filters
-                </button>
+                <button type="submit">Search Movies</button>
 
-                <a href="{{ url_for('index') }}"
-                   class="btn btn-secondary">
+                <a href="{{ url_for('index') }}" class="btn secondary">
                     Clear Filters
                 </a>
 
             </form>
-        </section>
+
+        </div>
 
 
-        <!-- Favorite Genres -->
-        {% if session.get('user_id') %}
+        <!-- ALL MOVIES -->
 
-            <section class="genres-section">
-                <h2>❤️ Your Favorite Genres</h2>
+        <h2>🎥 Available Movies</h2>
 
-                {% if favorite_genres %}
-                    <p>{{ favorite_genres | join(', ') }}</p>
-                {% else %}
-                    <p>You haven't selected your favorite genres yet.</p>
-                {% endif %}
+        {% if movies %}
 
-                <a href="{{ url_for('save_genres') }}"
-                   class="btn btn-primary">
-                    Choose Favorite Genres
-                </a>
-            </section>
+            <div class="movie-grid">
 
+                {% for movie in movies %}
 
-            <!-- Personalized Recommendations -->
-            <section class="recommendations-section">
-                <h2>✨ Movie Recommendations</h2>
+                    <div class="movie-card">
 
-                {% if recommendations %}
+                        <a href="{{ url_for('movie_details', movie_id=movie.movie_id) }}">
 
-                    <div class="movie-grid">
-                        {% for movie in recommendations %}
-                            {% include 'movie_card.html' %}
-                        {% endfor %}
+                            {% if movie.poster_url %}
+                                <img
+                                    src="{{ movie.poster_url }}"
+                                    alt="{{ movie.title }} poster"
+                                    loading="lazy"
+                                >
+                            {% else %}
+                                <div class="no-poster">
+                                    🎬 No Poster Available
+                                </div>
+                            {% endif %}
+
+                        </a>
+
+                        <div class="movie-info">
+
+                            <h3>{{ movie.title }}</h3>
+
+                            <p>
+                                {{ movie.release_year }} |
+                                {{ movie.genre }}
+                            </p>
+
+                            <p class="rating">
+                                ⭐ {{ "%.1f"|format(movie.avg_rating|float) }}/5
+                            </p>
+
+                            <p>
+                                {{ movie.rating_count }} ratings
+                            </p>
+
+                            <a
+                                href="{{ url_for('movie_details', movie_id=movie.movie_id) }}"
+                                class="btn"
+                            >
+                                View Details
+                            </a>
+
+                            <form
+                                method="POST"
+                                action="{{ url_for('add_to_watchlist', movie_id=movie.movie_id) }}"
+                            >
+                                <button type="submit" class="secondary">
+                                    ❤️ Add to Watchlist
+                                </button>
+                            </form>
+
+                        </div>
+
                     </div>
 
-                {% else %}
+                {% endfor %}
 
-                    <p>
-                        No recommendations available yet.
-                        Choose your favorite genres or rate some movies!
-                    </p>
+            </div>
 
-                {% endif %}
-            </section>
+        {% else %}
+
+            <p class="empty">
+                No movies found. Try another search or filter.
+            </p>
 
         {% endif %}
 
+    </section>
 
-        <!-- Top Rated Movies -->
-        <section class="top-movies-section">
-            <h2>⭐ Top Rated Movies</h2>
 
-            {% if top_movies %}
+    <!-- PERSONALIZED RECOMMENDATIONS -->
+
+    <section id="recommendations">
+
+        <h2>✨ Your Personalized Recommendations</h2>
+
+        {% if favorite_genres %}
+
+            <p>
+                Based on your favorite genres:
+                <strong>{{ favorite_genres | join(', ') }}</strong>
+            </p>
+
+            {% if recommendations %}
 
                 <div class="movie-grid">
-                    {% for movie in top_movies %}
-                        {% include 'movie_card.html' %}
+
+                    {% for movie in recommendations %}
+
+                        <div class="movie-card">
+
+                            <a href="{{ url_for('movie_details', movie_id=movie.movie_id) }}">
+
+                                {% if movie.poster_url %}
+                                    <img
+                                        src="{{ movie.poster_url }}"
+                                        alt="{{ movie.title }} poster"
+                                        loading="lazy"
+                                    >
+                                {% else %}
+                                    <div class="no-poster">
+                                        🎬 No Poster Available
+                                    </div>
+                                {% endif %}
+
+                            </a>
+
+                            <div class="movie-info">
+
+                                <h3>{{ movie.title }}</h3>
+
+                                <p>
+                                    {{ movie.release_year }} |
+                                    {{ movie.genre }}
+                                </p>
+
+                                <p class="rating">
+                                    ⭐ {{ "%.1f"|format(movie.avg_rating|float) }}/5
+                                </p>
+
+                                <p class="reason">
+                                    {{ movie.recommendation_reason }}
+                                </p>
+
+                                <a
+                                    href="{{ url_for('movie_details', movie_id=movie.movie_id) }}"
+                                    class="btn"
+                                >
+                                    View Details
+                                </a>
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for('add_to_watchlist', movie_id=movie.movie_id) }}"
+                                >
+                                    <button type="submit" class="secondary">
+                                        ❤️ Add to Watchlist
+                                    </button>
+                                </form>
+
+                            </div>
+
+                        </div>
+
                     {% endfor %}
+
                 </div>
 
             {% else %}
 
-                <p>No top-rated movies available yet.</p>
+                <p class="empty">
+                    No recommendations available right now.
+                    Try rating some movies or selecting more genres.
+                </p>
 
             {% endif %}
-        </section>
+
+        {% else %}
+
+            <p class="empty">
+                You haven't selected your favorite genres yet.
+                Select your favorite genres to get personalized recommendations.
+            </p>
+
+        {% endif %}
+
+    </section>
 
 
-        <!-- All Movies -->
-        <section class="all-movies-section">
-            <h2>🎥 All Movies</h2>
+    <!-- FAVORITE GENRES -->
 
-            {% if movies %}
+    <section id="favorites">
 
-                <div class="movie-grid">
+        <h2>❤️ Your Favorite Genres</h2>
+
+        <div class="genre-box">
+
+            {% if favorite_genres %}
+
+                <p>Your selected genres:</p>
+
+                <strong>
+                    {{ favorite_genres | join(', ') }}
+                </strong>
+
+            {% else %}
+
+                <p>You haven't selected your favorite genres yet.</p>
+
+            {% endif %}
+
+            <br><br>
+
+            <a href="{{ url_for('save_genres') }}" class="btn">
+                Choose Favorite Genres
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <!-- TOP FIVE MOVIES -->
+
+    <section id="top-movies">
+
+        <h2>🏆 Top Five Movies</h2>
+
+        {% if top_movies %}
+
+            <div class="movie-grid">
+
+                {% for movie in top_movies %}
+
+                    <div class="movie-card">
+
+                        <a href="{{ url_for('movie_details', movie_id=movie.movie_id) }}">
+
+                            {% if movie.poster_url %}
+                                <img
+                                    src="{{ movie.poster_url }}"
+                                    alt="{{ movie.title }} poster"
+                                    loading="lazy"
+                                >
+                            {% else %}
+                                <div class="no-poster">
+                                    🎬 No Poster Available
+                                </div>
+                            {% endif %}
+
+                        </a>
+
+                        <div class="movie-info">
+
+                            <h3>{{ loop.index }}. {{ movie.title }}</h3>
+
+                            <p>
+                                {{ movie.release_year }} |
+                                {{ movie.genre }}
+                            </p>
+
+                            <p class="rating">
+                                ⭐ {{ "%.1f"|format(movie.avg_rating|float) }}/5
+                            </p>
+
+                            <p>
+                                {{ movie.rating_count }} ratings
+                            </p>
+
+                            <a
+                                href="{{ url_for('movie_details', movie_id=movie.movie_id) }}"
+                                class="btn"
+                            >
+                                View Details
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <p class="empty">
+                No rated movies available yet.
+            </p>
+
+        {% endif %}
+
+    </section>
+
+
+    <!-- RATE A MOVIE -->
+
+    <section id="rate-movie">
+
+        <h2>⭐ Rate a Movie</h2>
+
+        <div class="form-box">
+
+            <form method="POST" action="{{ url_for('rate_movie') }}">
+
+                <label for="movie_id">Select Movie:</label>
+
+                <select name="movie_id" id="movie_id" required>
+
+                    <option value="">Choose a movie</option>
+
                     {% for movie in movies %}
-                        {% include 'movie_card.html' %}
+                        <option value="{{ movie.movie_id }}">
+                            {{ movie.title }}
+                        </option>
                     {% endfor %}
-                </div>
 
-            {% else %}
+                </select>
 
-                <p>No movies found. Try another search or filter.</p>
+                <br><br>
 
-            {% endif %}
-        </section>
+                <label for="rating">Your Rating:</label>
 
-    </main>
+                <select name="rating" id="rating" required>
+                    <option value="">Select Rating</option>
+                    <option value="1">1 - Poor</option>
+                    <option value="2">2 - Fair</option>
+                    <option value="3">3 - Good</option>
+                    <option value="4">4 - Very Good</option>
+                    <option value="5">5 - Excellent</option>
+                </select>
+
+                <br><br>
+
+                <button type="submit">Submit Rating</button>
+
+            </form>
+
+        </div>
+
+    </section>
+
+</div>
 
 
-    <!-- Footer -->
-    <footer>
-        <p>
-            © 2026 CineMatch — Your Personal Movie Recommendation System
-        </p>
-    </footer>
+<footer>
+    <p>
+        © 2026 CineMatch |
+        Your Personal Movie Recommendation System 🎬
+    </p>
+</footer>
 
 </body>
 </html>

@@ -1,17 +1,23 @@
+
 import re
 import os
+
 from dotenv import load_dotenv
-from flask import Flask, request, render_template, redirect, url_for, flash, session
+from flask import (
+    Flask, request, render_template, redirect,
+    url_for, flash, session
+)
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+
 load_dotenv()
 
 app = Flask(__name__)
-
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
 
-
+if not app.secret_key:
+    raise ValueError("FLASK_SECRET_KEY is missing from your .env file.")
 
 
 # ---------------- DATABASE CONNECTION ----------------
@@ -26,7 +32,6 @@ def get_db_connection():
 
 
 # ---------------- GET MOVIES ----------------
-
 
 def get_movies(search_query="", selected_genre="", selected_year="", min_rating=""):
     conn = get_db_connection()
@@ -81,43 +86,6 @@ def get_movies(search_query="", selected_genre="", selected_year="", min_rating=
 
     return movies
 
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    sql = """
-        SELECT
-            m.movie_id,
-            m.title,
-            m.release_year,
-            m.genre,
-            m.poster_url,
-            COALESCE(AVG(r.rating), 0) AS avg_rating,
-            COUNT(r.rating_id) AS rating_count
-        FROM movies m
-        LEFT JOIN ratings r ON m.movie_id = r.movie_id
-    """
-
-    if search_query:
-        sql += " WHERE m.title LIKE %s OR m.genre LIKE %s"
-        search_value = "%" + search_query + "%"
-        params = (search_value, search_value)
-    else:
-        params = ()
-
-    sql += """
-        GROUP BY
-            m.movie_id, m.title, m.release_year,
-            m.genre, m.poster_url
-        ORDER BY m.title
-    """
-
-    cursor.execute(sql, params)
-    movies = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-    return movies
-
 
 # ---------------- GET FAVORITE GENRES ----------------
 
@@ -129,98 +97,109 @@ def get_favorite_genres(user_id):
         "SELECT genre FROM user_genres WHERE user_id = %s ORDER BY genre",
         (user_id,)
     )
+
     genres = [row[0] for row in cursor.fetchall()]
 
     cursor.close()
     conn.close()
+
     return genres
 
-# ---------------- HOME PAGE ----------------
 
+# ---------------- HOME PAGE ----------------
 @app.route("/")
 def index():
+    if "user_id" not in session:
+        return render_template("landing.html")
+
+    # Keep your existing movie dashboard code below
+
     search_query = request.args.get("search", "").strip()
     selected_genre = request.args.get("genre", "").strip()
     selected_year = request.args.get("year", "").strip()
     min_rating = request.args.get("min_rating", "").strip()
 
     movies = get_movies(
-    search_query,
-    selected_genre,
-    selected_year,
-    min_rating
-)
-    favorite_genres = []
+        search_query,
+        selected_genre,
+        selected_year,
+        min_rating
+    )
+
+    user_id = session["user_id"]
+
+    favorite_genres = get_favorite_genres(user_id)
     recommendations = []
     top_movies = []
 
-    # Personalized recommendations for the logged-in user
-    if session.get("user_id"):
-        user_id = session["user_id"]
-        favorite_genres = get_favorite_genres(user_id)
+    # ---------------- PERSONALIZED RECOMMENDATIONS ----------------
 
-        if favorite_genres:
-            conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)
+    if favorite_genres:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
 
-            placeholders = ",".join(["%s"] * len(favorite_genres))
+        genre_conditions = " OR ".join(
+            ["FIND_IN_SET(%s, REPLACE(m.genre, ', ', ',')) > 0"]
+            * len(favorite_genres)
+        )
 
-            recommendation_sql = f"""
-                SELECT
-                    m.movie_id,
-                    m.title,
-                    m.release_year,
-                    m.genre,
-                    m.poster_url,
-                    COALESCE(AVG(r.rating), 0) AS avg_rating,
-                    COUNT(r.rating_id) AS rating_count
-                FROM movies m
-                LEFT JOIN ratings r ON m.movie_id = r.movie_id
-                WHERE m.genre IN ({placeholders})
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM ratings ur
-                      WHERE ur.movie_id = m.movie_id
-                        AND ur.user_id = %s
-                  )
-                GROUP BY
-                    m.movie_id, m.title, m.release_year,
-                    m.genre, m.poster_url
-                ORDER BY m.genre, avg_rating DESC, m.title
-                LIMIT 10
-            """
+        recommendation_sql = f"""
+            SELECT
+                m.movie_id,
+                m.title,
+                m.release_year,
+                m.genre,
+                m.poster_url,
+                COALESCE(AVG(r.rating), 0) AS avg_rating,
+                COUNT(r.rating_id) AS rating_count
+            FROM movies m
+            LEFT JOIN ratings r ON m.movie_id = r.movie_id
+            WHERE ({genre_conditions})
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM ratings ur
+                  WHERE ur.movie_id = m.movie_id
+                    AND ur.user_id = %s
+              )
+            GROUP BY
+                m.movie_id, m.title, m.release_year,
+                m.genre, m.poster_url
+            ORDER BY avg_rating DESC, m.title
+            LIMIT 10
+        """
 
-            parameters = tuple(favorite_genres) + (user_id,)
+        parameters = tuple(favorite_genres) + (user_id,)
 
-            cursor.execute(recommendation_sql, parameters)
-            recommendations = cursor.fetchall()
+        cursor.execute(recommendation_sql, parameters)
+        recommendations = cursor.fetchall()
 
-            # Explain why each movie is recommended
-            for movie in recommendations:
-                movie_genres = [
-                    genre.strip()
-                    for genre in movie["genre"].split(",")
-                ] if movie["genre"] else []
+        # Explain why each movie is recommended
+        for movie in recommendations:
+            movie_genres = [
+                genre.strip()
+                for genre in movie["genre"].split(",")
+            ] if movie["genre"] else []
 
-                matching_genres = [
-                    genre for genre in favorite_genres
-                    if genre in movie_genres
-                ]
+            matching_genres = [
+                genre for genre in favorite_genres
+                if genre in movie_genres
+            ]
 
-                if matching_genres:
-                    movie["recommendation_reason"] = (
-                        "Recommended because you like: "
-                        + ", ".join(matching_genres)
-                    )
-                else:
-                    movie["recommendation_reason"] = (
-                        "Recommended based on your favorite genres."
-                    )
+            if matching_genres:
+                movie["recommendation_reason"] = (
+                    "Recommended because you like: "
+                    + ", ".join(matching_genres)
+                )
+            else:
+                movie["recommendation_reason"] = (
+                    "Recommended based on your favorite genres."
+                )
 
-            cursor.close()
-            conn.close()
+        cursor.close()
+        conn.close()
 
-    # Get top five movies that have at least one rating
+    # ---------------- TOP FIVE MOVIES ----------------
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -247,7 +226,6 @@ def index():
     cursor.close()
     conn.close()
 
-    # Available favorite genres
     genres = [
         "Action", "Comedy", "Drama", "Fantasy", "Horror",
         "Mystery", "Romance", "Sci-Fi", "Thriller"
@@ -262,16 +240,16 @@ def index():
         top_movies=top_movies,
         genres=genres,
         selected_genre=selected_genre,
-    selected_year=selected_year,
-    min_rating=min_rating
+        selected_year=selected_year,
+        min_rating=min_rating
     )
-
 
 
 # ---------------- REGISTER ----------------
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
+
     if request.method == "POST":
         display_name = request.form.get("display_name", "").strip()
         email = request.form.get("email", "").strip().lower()
@@ -282,45 +260,54 @@ def register():
             flash("Please fill in all fields.", "error")
             return redirect(url_for("register"))
 
-        if not re.fullmatch(r"(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]+", username):
-            flash("Username must contain letters and numbers only.", "error")
+        if not re.fullmatch(
+            r"(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]+",
+            username
+        ):
+            flash(
+                "Username must contain letters and numbers only.",
+                "error"
+            )
             return redirect(url_for("register"))
 
         conn = get_db_connection()
         cursor = conn.cursor()
 
         try:
-            # Check whether the username already exists
+            # Check username
             cursor.execute(
                 "SELECT user_id FROM users WHERE username = %s",
                 (username,)
             )
 
             if cursor.fetchone():
-                flash("Username already exists. Please choose another.", "error")
+                flash(
+                    "Username already exists. Please choose another.",
+                    "error"
+                )
                 return redirect(url_for("register"))
 
-            # Check whether the email already exists
+            # Check email
             cursor.execute(
                 "SELECT user_id FROM users WHERE email = %s",
                 (email,)
             )
 
             if cursor.fetchone():
-                flash("Email already registered. Please use another email.", "error")
+                flash(
+                    "Email already registered. Please use another email.",
+                    "error"
+                )
                 return redirect(url_for("register"))
 
-            # Hash the password before saving it
+            # Hash password
             password_hash = generate_password_hash(password)
 
-            cursor.execute(
-                """
+            cursor.execute("""
                 INSERT INTO users
                     (display_name, email, username, password_hash)
                 VALUES (%s, %s, %s, %s)
-                """,
-                (display_name, email, username, password_hash)
-            )
+            """, (display_name, email, username, password_hash))
 
             conn.commit()
 
@@ -329,7 +316,10 @@ def register():
 
         except Exception:
             conn.rollback()
-            flash("Registration failed. Please check your details and try again.", "error")
+            flash(
+                "Registration failed. Please check your details and try again.",
+                "error"
+            )
             app.logger.exception("Registration failed")
 
         finally:
@@ -338,36 +328,79 @@ def register():
 
     return render_template("auth.html")
 
+
 # ---------------- LOGIN ----------------
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+
     if request.method == "POST":
+
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
 
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        # Check empty fields
+        if not username or not password:
+            flash("Please enter username and password.", "error")
+            return redirect(url_for("login"))
 
-        cursor.execute("""
-            SELECT user_id, display_name, username, password_hash
-            FROM users
-            WHERE username = %s
-        """, (username,))
+        conn = None
+        cursor = None
 
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
+        try:
+            # Connect to MySQL
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
 
-        if user and check_password_hash(user["password_hash"], password):
-            session.clear()
-            session["user_id"] = user["user_id"]
-            session["display_name"] = user["display_name"]
-            flash("Welcome to CineMatch!", "success")
-            return redirect(url_for("index"))
+            # Find user in database
+            cursor.execute("""
+                SELECT user_id, display_name, username, password_hash
+                FROM users
+                WHERE username = %s
+            """, (username,))
 
-        flash("Invalid username or password.", "error")
-        return redirect(url_for("login"))
+            user = cursor.fetchone()
+
+            # Check whether user exists
+            print("User found:", bool(user))
+
+            # Check password
+            password_ok = False
+
+            if user:
+                password_ok = check_password_hash(
+                    user["password_hash"], password
+                )
+
+            print("Password correct:", password_ok)
+
+            # Successful login
+            if user and password_ok:
+
+                session.clear()
+
+                session["user_id"] = user["user_id"]
+                session["display_name"] = user["display_name"]
+
+                flash("Welcome to CineMatch!", "success")
+
+                return redirect(url_for("index"))
+
+            else:
+                flash("Invalid username or password.", "error")
+                return redirect(url_for("login"))
+
+        except Exception as e:
+            print("Login error:", e)
+            flash("Something went wrong. Please try again.", "error")
+            return redirect(url_for("login"))
+
+        finally:
+            if cursor:
+                cursor.close()
+
+            if conn:
+                conn.close()
 
     return render_template("auth.html", mode="login")
 
@@ -383,47 +416,69 @@ def logout():
 
 # ---------------- SAVE FAVORITE GENRES ----------------
 
-@app.route("/save_genres", methods=["POST"])
+# ---------------- SAVE FAVORITE GENRES ----------------
+
+@app.route("/save_genres", methods=["GET", "POST"])
 def save_genres():
+
     if not session.get("user_id"):
         flash("Please log in to select your favorite genres.", "error")
         return redirect(url_for("login"))
 
+    valid_genres = [
+        "Action", "Comedy", "Drama", "Fantasy", "Horror",
+        "Mystery", "Romance", "Sci-Fi", "Thriller"
+    ]
+
+    # Display the genre selection page
+    if request.method == "GET":
+        return render_template("genres.html", genres=valid_genres)
+
+    # Save selected genres
     user_id = session["user_id"]
     selected_genres = request.form.getlist("genres")
 
-    valid_genres = {
-        "Action", "Comedy", "Drama", "Fantasy", "Horror",
-        "Mystery", "Romance", "Sci-Fi", "Thriller"
-    }
-    selected_genres = [g for g in selected_genres if g in valid_genres]
+    selected_genres = [
+        genre for genre in selected_genres
+        if genre in valid_genres
+    ]
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute(
-        "DELETE FROM user_genres WHERE user_id = %s",
-        (user_id,)
-    )
+    try:
+        cursor.execute(
+            "DELETE FROM user_genres WHERE user_id = %s",
+            (user_id,)
+        )
 
-    for genre in selected_genres:
-        cursor.execute("""
-            INSERT INTO user_genres (user_id, genre)
-            VALUES (%s, %s)
-        """, (user_id, genre))
+        for genre in selected_genres:
+            cursor.execute("""
+                INSERT INTO user_genres (user_id, genre)
+                VALUES (%s, %s)
+            """, (user_id, genre))
 
-    conn.commit()
-    cursor.close()
-    conn.close()
+        conn.commit()
+        flash("Your favorite genres have been saved!", "success")
 
-    flash("Your favorite genres have been saved!", "success")
+    except Exception:
+        conn.rollback()
+        app.logger.exception("Saving genres failed")
+        flash("Unable to save genres.", "error")
+
+    finally:
+        cursor.close()
+        conn.close()
+
     return redirect(url_for("index"))
+
 
 
 # ---------------- RATE A MOVIE ----------------
 
 @app.route("/rate", methods=["POST"])
 def rate_movie():
+
     if not session.get("user_id"):
         flash("Please log in to rate movies.", "error")
         return redirect(url_for("login"))
@@ -437,6 +492,7 @@ def rate_movie():
         if not 1 <= rating <= 5:
             flash("Rating must be between 1 and 5.", "error")
             return redirect(request.referrer or url_for("index"))
+
     except (ValueError, TypeError):
         flash("Please select a valid movie and rating.", "error")
         return redirect(request.referrer or url_for("index"))
@@ -448,11 +504,13 @@ def rate_movie():
         "SELECT movie_id FROM movies WHERE movie_id = %s",
         (movie_id,)
     )
+
     movie = cursor.fetchone()
 
     if not movie:
         cursor.close()
         conn.close()
+
         flash("Movie not found.", "error")
         return redirect(url_for("index"))
 
@@ -465,10 +523,10 @@ def rate_movie():
     """, (user_id, movie_id, rating))
 
     conn.commit()
+
     cursor.close()
     conn.close()
 
-    # Remove any older rating success messages
     session.pop("_flashes", None)
 
     flash("Your rating has been saved!", "success")
@@ -477,9 +535,13 @@ def rate_movie():
 
 # ---------------- MOVIE DETAILS ----------------
 
-
 @app.route("/movie/<int:movie_id>")
 def movie_details(movie_id):
+
+    if not session.get("user_id"):
+        flash("Please log in to view movies.", "error")
+        return redirect(url_for("login"))
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -506,6 +568,7 @@ def movie_details(movie_id):
     if not movie:
         cursor.close()
         conn.close()
+
         flash("Movie not found.", "error")
         return redirect(url_for("index"))
 
@@ -546,6 +609,7 @@ def movie_details(movie_id):
 
 @app.route("/watchlist/add/<int:movie_id>", methods=["POST"])
 def add_to_watchlist(movie_id):
+
     if not session.get("user_id"):
         flash("Please log in to add movies to your watchlist.", "error")
         return redirect(url_for("login"))
@@ -559,11 +623,13 @@ def add_to_watchlist(movie_id):
         "SELECT movie_id FROM movies WHERE movie_id = %s",
         (movie_id,)
     )
+
     movie = cursor.fetchone()
 
     if not movie:
         cursor.close()
         conn.close()
+
         flash("Movie not found.", "error")
         return redirect(url_for("index"))
 
@@ -575,6 +641,7 @@ def add_to_watchlist(movie_id):
     added = cursor.rowcount > 0
 
     conn.commit()
+
     cursor.close()
     conn.close()
 
@@ -590,6 +657,7 @@ def add_to_watchlist(movie_id):
 
 @app.route("/watchlist")
 def view_watchlist():
+
     if not session.get("user_id"):
         flash("Please log in to view your watchlist.", "error")
         return redirect(url_for("login"))
@@ -625,6 +693,7 @@ def view_watchlist():
 
 @app.route("/watchlist/remove/<int:movie_id>", methods=["POST"])
 def remove_from_watchlist(movie_id):
+
     if not session.get("user_id"):
         flash("Please log in to manage your watchlist.", "error")
         return redirect(url_for("login"))
@@ -640,6 +709,7 @@ def remove_from_watchlist(movie_id):
     """, (user_id, movie_id))
 
     conn.commit()
+
     cursor.close()
     conn.close()
 
@@ -647,8 +717,11 @@ def remove_from_watchlist(movie_id):
     return redirect(request.referrer or url_for("view_watchlist"))
 
 
+# ---------------- RATING HISTORY ----------------
+
 @app.route("/rating-history")
 def rating_history():
+
     if "user_id" not in session:
         flash("Please login to view your rating history.", "error")
         return redirect(url_for("login"))
@@ -678,66 +751,69 @@ def rating_history():
 
     return render_template("rating_history.html", ratings=ratings)
 
+
+# ---------------- PASSWORD RESET SERIALIZER ----------------
+
 def get_reset_serializer():
     return URLSafeTimedSerializer(app.secret_key)
 
 
+# ---------------- FORGOT PASSWORD ----------------
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
-    print("FORGOT PASSWORD FUNCTION CALLED")
-    if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
+    print("FORGOT PASSWORD ROUTE REACHED", flush=True)
 
-        if not email:
-            flash("Please enter your registered email address.", "error")
-            return redirect(url_for("forgot_password"))
+    if request.method == "POST":
+        print("POST REQUEST RECEIVED", flush=True)
+
+        email = request.form.get("email", "").strip().lower()
+        print("EMAIL:", email, flush=True)
 
         conn = None
         cursor = None
+
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
+
             cursor.execute(
                 "SELECT user_id FROM users WHERE email = %s",
                 (email,)
             )
+
             user = cursor.fetchone()
-            print("FORM SUBMITTED SUCCESSFULLY")
-            print("USER FOUND:", user is not None)
 
             if user:
                 token = get_reset_serializer().dumps(
                     email,
                     salt="password-reset-salt"
                 )
+
                 reset_url = url_for(
                     "reset_password",
                     token=token,
                     _external=True
                 )
-                print("\\nPASSWORD RESET LINK (valid for 15 minutes):")
-                print(reset_url)
-                print()
 
-            flash(
-                "If the email is registered, check the Flask terminal "
-                "for the password reset link.",
-                "info"
-            )
-        except Exception:
-            app.logger.exception("Forgot password request failed")
-            flash("Something went wrong. Please try again.", "error")
+                print("\nYOUR PASSWORD RESET LINK:", flush=True)
+                print(reset_url, flush=True)
+
+            else:
+                print("EMAIL NOT FOUND IN DATABASE", flush=True)
+
+        except Exception as e:
+            print("ERROR:", str(e), flush=True)
+
         finally:
             if cursor:
                 cursor.close()
             if conn:
                 conn.close()
 
-        return redirect(url_for("forgot_password"))
+        return "Check your VS Code terminal for the reset link."
 
     return render_template("forgot_password.html")
-
-
+# ---------------- RESET PASSWORD ----------------
 @app.route("/reset-password/<token>", methods=["GET", "POST"])
 def reset_password(token):
     try:
@@ -747,60 +823,43 @@ def reset_password(token):
             max_age=900
         )
     except SignatureExpired:
-        flash("Your reset link has expired. Please request a new one.", "error")
-        return redirect(url_for("forgot_password"))
+        return "Reset link expired. Please request a new link."
     except BadSignature:
-        flash("Invalid password reset link.", "error")
-        return redirect(url_for("forgot_password"))
+        return "Invalid reset link."
 
     if request.method == "POST":
-        password = request.form.get("password", "")
-        confirm_password = request.form.get("confirm_password", "")
+        new_password = request.form.get("new_password")
+        confirm_password = request.form.get("confirm_password")
 
-        if len(password) < 8:
-            flash("Password must be at least 8 characters.", "error")
-            return render_template("reset_password.html")
+        if len(new_password) < 8:
+            flash("Password must contain at least 8 characters.")
+            return render_template("reset_password.html", token=token)
 
-        if password != confirm_password:
-            flash("Passwords do not match.", "error")
-            return render_template("reset_password.html")
+        if new_password != confirm_password:
+            flash("Passwords do not match.")
+            return render_template("reset_password.html", token=token)
 
-        conn = None
-        cursor = None
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            password_hash = generate_password_hash(password)
-            cursor.execute(
-                "UPDATE users SET password_hash = %s WHERE email = %s",
-                (password_hash, email)
-            )
-            conn.commit()
+        hashed_password = generate_password_hash(new_password)
 
-            if cursor.rowcount == 0:
-                flash("Account not found. Please request a new reset link.", "error")
-                return redirect(url_for("forgot_password"))
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE users SET password_hash = %s WHERE email = %s",
+            (hashed_password, email)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
 
-            flash("Password changed successfully! Please log in.", "success")
-            return redirect(url_for("login"))
-        except Exception:
-            if conn:
-                conn.rollback()
-            app.logger.exception("Password update failed")
-            flash("Unable to update password. Please try again.", "error")
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+        flash("Password reset successful!")
+        return redirect(url_for("login"))
 
-    return render_template("reset_password.html")
+    return render_template("reset_password.html", token=token)
 
+@app.route("/test-landing")
+def test_landing():
+    return "CINEMATCH TEST ROUTE IS WORKING"
 
-# ---------------- RUN APPLICATION ----------------
-
+print(app.url_map)
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=False)
-
-
-
