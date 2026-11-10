@@ -5,7 +5,8 @@
 
         <img
             class="movie-poster"
-            src="{{ movie.poster_url }}"
+            src="{{ movie.poster_url or url_for('static', filename='poster/placeholder.svg') }}"
+            onerror="this.onerror=null; this.src='{{ url_for('static', filename='poster/placeholder.svg') }}';"
             alt="{{ movie.title }} poster"
             loading="lazy"
         >

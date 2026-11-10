@@ -409,13 +409,38 @@
         </div>
 
 
-        <!-- ALL MOVIES -->
+<!-- ALL MOVIES -->
 
-        <h2>🎥 Available Movies</h2>
+<section class="section-card genres-section" id="favorite-genres">
+    <h2>❤️ Your Favorite Genres</h2>
 
-        {% if movies %}
+    <form action="{{ url_for('save_genres') }}" method="POST" class="genre-form">
+        <div class="genre-list">
+            {% for genre in genres %}
+                <label class="genre-option">
+                    <input
+                        type="checkbox"
+                        name="genres"
+                        value="{{ genre }}"
+                        {% if genre in favorite_genres %}checked{% endif %}
+                    >
+                    <span>{{ genre }}</span>
+                </label>
+            {% endfor %}
+        </div>
 
-            <div class="movie-grid">
+        <button type="submit" class="btn btn-primary">
+            Save Favorite Genres
+        </button>
+    </form>
+</section>
+
+<h2>🎥 Available Movies</h2>
+
+{% if movies %}
+
+    <div class="movie-grid">
+ (Updated Cine Match project)
 
                 {% for movie in movies %}
 

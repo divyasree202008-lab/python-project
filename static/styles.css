@@ -630,6 +630,10 @@ select option {
     border-left: 4px solid #ff4d5a;
 }
 
+.flash-message.info {
+    border-left: 4px solid #ffbd2e;
+}
+
 /* ========================================
    18. RESPONSIVE DESIGN
 ======================================== */

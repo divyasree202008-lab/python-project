@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 750" width="500" height="750">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#181c2b"/>
+      <stop offset="100%" stop-color="#0b0d14"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ffbd2e" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ffbd2e" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="500" height="750" fill="url(#bg)"/>
+  <rect width="500" height="750" fill="url(#glow)"/>
+  <rect x="15" y="15" width="470" height="720" rx="16" fill="none" stroke="#2c3345" stroke-width="2"/>
+  
+  <!-- Film Icon -->
+  <circle cx="250" cy="310" r="65" fill="#202637" stroke="#ffbd2e" stroke-width="3"/>
+  <circle cx="250" cy="310" r="22" fill="#0b0d14"/>
+  <circle cx="250" cy="270" r="9" fill="#ffbd2e"/>
+  <circle cx="250" cy="350" r="9" fill="#ffbd2e"/>
+  <circle cx="210" cy="310" r="9" fill="#ffbd2e"/>
+  <circle cx="290" cy="310" r="9" fill="#ffbd2e"/>
+  
+  <!-- Typography -->
+  <text x="250" y="435" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="bold" fill="#ffbd2e" text-anchor="middle">🎬 CineMatch</text>
+  <text x="250" y="475" font-family="'Segoe UI', Arial, sans-serif" font-size="19" font-weight="600" fill="#ffffff" text-anchor="middle">Poster Coming Soon</text>
+  <text x="250" y="508" font-family="'Segoe UI', Arial, sans-serif" font-size="14" fill="#8c97ad" text-anchor="middle">Telugu Cinema Collection</text>
+</svg>

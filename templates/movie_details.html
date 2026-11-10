@@ -45,7 +45,7 @@
             <div class="movie-details-poster">
                 {% if movie.poster_url %}
                     <img src="{{ movie.poster_url }}"
-                         alt="{{ movie.title }} poster">
+                         alt="{{ movie.title }} poster" onerror="this.onerror=null; this.src='{{ url_for('static', filename='poster/placeholder.svg') }}';">
                 {% else %}
                     <div class="no-poster">
                         No Poster Available
@@ -186,7 +186,7 @@
 
                             {% if similar.poster_url %}
                                 <img src="{{ similar.poster_url }}"
-                                     alt="{{ similar.title }} poster">
+                                     alt="{{ similar.title }} poster" onerror="this.onerror=null; this.src='{{ url_for('static', filename='poster/placeholder.svg') }}';">
                             {% else %}
                                 <div class="similar-no-poster">
                                     No Poster Available

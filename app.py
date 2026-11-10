@@ -27,7 +27,8 @@ def get_db_connection():
         host=os.getenv("DB_HOST"),
         user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME")
+        database=os.getenv("DB_NAME"),
+        use_pure=True
     )
 
 
@@ -134,39 +135,48 @@ def index():
 
     # ---------------- PERSONALIZED RECOMMENDATIONS ----------------
 
-    if favorite_genres:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        
+        if favorite_genres:
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
 
-        genre_conditions = " OR ".join(
-            ["FIND_IN_SET(%s, REPLACE(m.genre, ', ', ',')) > 0"]
-            * len(favorite_genres)
-        )
+            # Match movies with any of the user's favorite genres
+            genre_conditions = " OR ".join(
+                ["FIND_IN_SET(%s, REPLACE(m.genre, ', ', ',')) > 0"]
+                * len(favorite_genres)
+            )
 
-        recommendation_sql = f"""
-            SELECT
-                m.movie_id,
-                m.title,
-                m.release_year,
-                m.genre,
-                m.poster_url,
-                COALESCE(AVG(r.rating), 0) AS avg_rating,
-                COUNT(r.rating_id) AS rating_count
-            FROM movies m
-            LEFT JOIN ratings r ON m.movie_id = r.movie_id
-            WHERE ({genre_conditions})
-              AND NOT EXISTS (
-                  SELECT 1
-                  FROM ratings ur
-                  WHERE ur.movie_id = m.movie_id
-                    AND ur.user_id = %s
-              )
-            GROUP BY
-                m.movie_id, m.title, m.release_year,
-                m.genre, m.poster_url
-            ORDER BY avg_rating DESC, m.title
-            LIMIT 10
-        """
+            recommendation_sql = f"""
+                SELECT
+                    m.movie_id,
+                    m.title,
+                    m.release_year,
+                    m.genre,
+                    m.poster_url,
+                    AVG(r.rating) AS avg_rating,
+                    COUNT(r.rating_id) AS rating_count
+                FROM movies m
+                LEFT JOIN ratings r
+                    ON m.movie_id = r.movie_id
+                WHERE ({genre_conditions})
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM ratings ur
+                      WHERE ur.movie_id = m.movie_id
+                        AND ur.user_id = %s
+                  )
+                GROUP BY
+                    m.movie_id,
+                    m.title,
+                    m.release_year,
+                    m.genre,
+                    m.poster_url
+                ORDER BY
+                    avg_rating DESC,
+                    rating_count DESC,
+                    m.title
+                LIMIT 10
+            """
 
         parameters = tuple(favorite_genres) + (user_id,)
 
@@ -200,6 +210,8 @@ def index():
 
     # ---------------- TOP FIVE MOVIES ----------------
 
+
+    # Get top five movies that have at least one rating
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -716,6 +728,7 @@ def remove_from_watchlist(movie_id):
     flash("Movie removed from your watchlist.", "success")
     return redirect(request.referrer or url_for("view_watchlist"))
 
+#-------------------RATING HISTORY---------------------
 
 # ---------------- RATING HISTORY ----------------
 
@@ -737,7 +750,7 @@ def rating_history():
             m.genre,
             m.poster_url,
             r.rating,
-            r.rated_at
+            r.rated_at 
         FROM ratings r
         JOIN movies m ON r.movie_id = m.movie_id
         WHERE r.user_id = %s
@@ -757,6 +770,7 @@ def rating_history():
 def get_reset_serializer():
     return URLSafeTimedSerializer(app.secret_key)
 
+#---------------------FORGOT PASSWORD------------------------
 
 # ---------------- FORGOT PASSWORD ----------------
 @app.route("/forgot-password", methods=["GET", "POST"])
@@ -855,6 +869,14 @@ def reset_password(token):
         return redirect(url_for("login"))
 
     return render_template("reset_password.html", token=token)
+
+
+# ---------------- POSTER PATH COMPATIBILITY ----------------
+
+@app.route("/static/posters/<path:filename>")
+def static_posters_redirect(filename):
+    return redirect(url_for("static", filename=f"poster/{filename}"))
+
 
 @app.route("/test-landing")
 def test_landing():

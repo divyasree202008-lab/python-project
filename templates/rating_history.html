@@ -28,7 +28,7 @@
         <div class="movie-card">
             {% if item.poster_url %}
                 <img src="{{ item.poster_url }}"
-                     alt="{{ item.title }} poster">
+                     alt="{{ item.title }} poster" onerror="this.onerror=null; this.src='{{ url_for('static', filename='poster/placeholder.svg') }}';">
             {% else %}
                 <div class="no-poster">No Poster Available</div>
             {% endif %}

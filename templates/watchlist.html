@@ -1,53 +1,124 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>My Watchlist - CineMatch</title>
+
     <link rel="stylesheet"
           href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>My Watchlist</h1>
 
-    <p>Movies you have saved to watch later.</p>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <a href="{{ url_for('index') }}" class="logo">
+            🎬 CineMatch
+        </a>
 
-    <a href="{{ url_for('index') }}">Back to Home</a>
+        <div class="nav-links">
+            <a class="btn btn-secondary"
+               href="{{ url_for('index') }}">
+                Home
+            </a>
 
-    {% if movies %}
-        <div class="movie-list">
-            {% for movie in movies %}
-                <div class="movie-card">
+            <a class="btn btn-secondary"
+               href="{{ url_for('rating_history') }}">
+                ⭐ Rating History
+            </a>
 
-                    {% if movie.poster_url %}
-                        <img src="{{ movie.poster_url }}"
-                             alt="{{ movie.title }}"
-                             width="180">
-                    {% endif %}
-
-                    <h3>{{ movie.title }}</h3>
-                    <p>Year: {{ movie.release_year }}</p>
-                    <p>Genre: {{ movie.genre }}</p>
-
-                    <a href="{{ url_for('movie_details',
-                                        movie_id=movie.movie_id) }}">
-                        View Details
-                    </a>
-
-                    <form method="POST"
-                          action="{{ url_for('remove_from_watchlist',
-                                             movie_id=movie.movie_id) }}">
-                        <button type="submit">
-                            Remove from Watchlist
-                        </button>
-                    </form>
-
-                </div>
-            {% endfor %}
+            <a class="btn btn-secondary"
+               href="{{ url_for('logout') }}">
+                Logout
+            </a>
         </div>
-    {% else %}
-        <p>Your watchlist is empty. Add some movies from the home page!</p>
-    {% endif %}
+    </nav>
+
+    <main class="container">
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>❤️ My Watchlist</h1>
+            <p>Movies you have saved to watch later.</p>
+        </section>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Watchlist Movies Grid -->
+        {% if movies %}
+
+            <div class="movie-grid">
+                {% for movie in movies %}
+                    <div class="movie-card">
+                        <a class="poster-link"
+                           href="{{ url_for('movie_details', movie_id=movie.movie_id) }}">
+                            <img
+                                class="movie-poster"
+                                src="{{ movie.poster_url or url_for('static', filename='poster/placeholder.svg') }}"
+                                alt="{{ movie.title }} poster"
+                                loading="lazy"
+                                onerror="this.onerror=null; this.src='{{ url_for('static', filename='poster/placeholder.svg') }}';"
+                            >
+                        </a>
+
+                        <div class="movie-info">
+                            <h3>
+                                <a href="{{ url_for('movie_details', movie_id=movie.movie_id) }}">
+                                    {{ movie.title }}
+                                </a>
+                            </h3>
+
+                            <p>{{ movie.release_year }}</p>
+                            <p>{{ movie.genre }}</p>
+
+                            <form
+                                action="{{ url_for('remove_from_watchlist', movie_id=movie.movie_id) }}"
+                                method="POST"
+                                style="margin-top: 14px;"
+                            >
+                                <button class="btn btn-secondary"
+                                        type="submit"
+                                        style="width: 100%; border-color: #ff4d5a; color: #ff4d5a;">
+                                    🗑️ Remove from Watchlist
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+        {% else %}
+
+            <div class="section-card" style="text-align: center; padding: 48px 20px;">
+                <p style="font-size: 16px; margin-bottom: 24px;">
+                    Your watchlist is empty. Explore Telugu movies and bookmark your favorites!
+                </p>
+
+                <a href="{{ url_for('index') }}" class="btn btn-primary">
+                    Explore Movies
+                </a>
+            </div>
+
+        {% endif %}
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>
+            © 2026 CineMatch — Your Personal Movie Recommendation System
+        </p>
+    </footer>
+
 </body>
 </html>
